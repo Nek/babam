@@ -12,16 +12,15 @@
   (let [content (c/slurp input)
         [cljc html] (s/split content #"(?m)^---$")
         ns (symbol (first (s/split cljc #"\.")))]
-    ;; (println "parsed" (h/as-hiccup parsed))
     (c/in-ns ns)
-    
-    (let [defs (c/eval (c/read-string cljc))]
-      (println "defs" defs)
+    (let [env (c/eval (c/read-string cljc))]
+      (println "env" env)
 ;;rewrite next regexp to match ((:title env)) the result should be (:title env)
       (let [html (s/replace html #"\(+\(:([^\)]+)\s+[^\)]+\)\)+" (fn [element]
-                                                       (let [binding (second element)
-                                                             value ((symbol binding) defs)]
-                                                         (println "binding" binding "value" value)
+                                                       (let [code (first element)
+                                                             _ (println "code" code)
+                                                             value (c/eval (c/read-string code))]
+                                                         (println element "binding" code "value" value)
                                                          (str value))))
             parsed (h/parse html)
             hiccup (h/as-hiccup parsed)
