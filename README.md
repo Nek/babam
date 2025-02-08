@@ -1,0 +1,1 @@
+// Generate a readme for this project which should be a minimal clone of astro.build but in Clojure for Babashka AI!
