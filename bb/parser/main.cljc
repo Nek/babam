@@ -18,7 +18,7 @@
     (let [defs (c/eval (c/read-string cljc))]
       (println "defs" defs)
 ;;rewrite next regexp to match ((:title env)) the result should be (:title env)
-      (let [html (s/replace html #"\{\{([^\}]+)\}\}" (fn [element]
+      (let [html (s/replace html #"\(+\(:([^\)]+)\s+[^\)]+\)\)+" (fn [element]
                                                        (let [binding (second element)
                                                              value ((symbol binding) defs)]
                                                          (println "binding" binding "value" value)
