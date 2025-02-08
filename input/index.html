@@ -1,4 +1,6 @@
-(def title "Your Page Title")
+{:title "Your Page Title"
+   :component (fn []
+                [:div "Hello"])}
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -11,8 +13,9 @@
 </head>
 <body>
     <header>
-        <h1>{{title}}</h1>
+        <h1>((:title env))</h1>
     </header>
+    <component />
     <main>
         <p>This is a basic HTML5 template.</p>
     </main>
