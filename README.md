@@ -2,14 +2,11 @@
 
 A minimal clone of [Astro](https://astro.build) built with Clojure and Babashka. Build fast, content-focused websites with the power of Clojure.
 
-## Features
+## Roadmap
 
-- 🚀 Built on Babashka for lightning-fast builds
-- ⚡️ Zero-config by default
-- 🔧 Clojure-first architecture
-- 📝 Markdown support out of the box
-- 🎨 Component islands architecture
-- 🔥 Hot module replacement (HMR)
+- cljc+html based components
+- resolve defs in a component to {{name}} vars in html
+- 
 
 ## Quick Start
 
