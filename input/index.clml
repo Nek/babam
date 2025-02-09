@@ -2,6 +2,7 @@
 
 (defn component [_ _]
 (h2/html [:div "Hello"]))
+
 (def title "Your Page Title")
 ---
 <!DOCTYPE html>
