@@ -1,5 +1,7 @@
 {
  :paths ["bb"]
- :deps {org.clj-commons/hickory {:mvn/version "0.7.5"}}
+ :deps {org.clj-commons/hickory {:mvn/version "0.7.5"}
+        io.github.escherize/huff {:mvn/version "0.2.12"}
+        }
 ;;  :pods {com.github.jackdbd/pod.jackdbd.jsoup {:version "0.4.0"}}
 }
