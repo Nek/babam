@@ -12,7 +12,8 @@
              [hickory.select :as hs]
              [hickory.zip :as hz]
              [huff2.core :as h2]
-             [huff2.extension :as h2e]))
+             [huff2.extension :as h2e]
+             [clojure.java.io :as io]))
 
 (defn edit-nodes [condition edit-fn z]
   (loop [loc z]
@@ -27,47 +28,39 @@
   (let [current-ns *ns*
         content (c/slurp input)
         [cljc html] (s/split content #"(?m)^---$")
-        NS_UID (hash input)
+        NS_UID (str "h-" (hash input))
+        NS_COMP_KEYWORD (keyword (str NS_UID "/component"))
         ns (fs/file-name (first (drop-last (fs/split-ext input))))]
     (c/in-ns (symbol ns))
-    (println *ns* ns)
     (c/eval (c/read-string (str "(do " cljc ")")))
-    (def comp-qualifier (keyword (str NS_UID "/component")))
-    (def my-schema (h2e/add-schema-branch h2/hiccup-schema :index/component))
+    (def my-schema (h2e/add-schema-branch h2/hiccup-schema NS_COMP_KEYWORD))
     (def ns-keys (keys (ns-interns *ns*)))
     (def component-fns (into {} (filter (fn [[_ val]] (c/fn? val)) (map (fn [k] 
                                                                           (let [q-key (keyword (str ns "/" k))]
                                                                           [q-key (eval k)])) ns-keys))))
-    (defmethod h2/emit :index/component [append! node opts]
+    (defmethod h2/emit NS_COMP_KEYWORD [append! node opts]
       (let [[_ [_ [attrs & children]]] node
-            component-name (get-in attrs [:component])
+            component-name (get-in attrs [NS_COMP_KEYWORD])
             component-fn (get component-fns component-name)
-            clean-attrs (dissoc attrs :component)]
-        (println "component-name" component-name "children" children "opts" opts)
+            clean-attrs (dissoc attrs NS_COMP_KEYWORD)]
         (append! (component-fn clean-attrs children))))
     (let [html (s/replace html #"\{\{([^}]+)\}\}" (fn [[_ code]]
                                                     (let [result (c/eval (c/read-string code))]
-                                                    ;;   (println "code" code "result" result)
                                                       (str result))))
           hickory (hc/as-hickory (hc/parse html))
-        ;;   hiccup (hickory-to-hiccup hickory)
-          _ (println "hickory" (type hickory))
           zipper (hz/hickory-zip hickory)
-          _ (println "zipper" (type zipper))
           edited (edit-nodes (fn [node] (and (= :element (:type node)) (hu/starts-with (name (:tag node)) "c:")))
                              (fn [node] (let [tag (:tag node)
                                               name (name tag)
-                                              new-tag (keyword (s/replace name "c:" (str *ns* "/")))
+                                              new-tag  NS_COMP_KEYWORD
                                               component-name (keyword (s/replace name "c:" (str ns "/")))]
-                                        ;;   (println "tag" tag "new-tag" new-tag "component-name" component-name)
                                           (-> node
                                               (assoc :tag new-tag)
-                                              (update-in [:attrs] assoc :component component-name))))
-                             zipper)]
-      
-      (def v (hickory-to-hiccup edited))
-      (println "v" v)
-      (println (h2/html (h2e/custom-fxns! my-schema) v))
-    ;;   (println (hickory-to-html edited))
-      (c/in-ns current-ns)
-      (println *ns*))))
+                                              (update-in [:attrs] assoc NS_COMP_KEYWORD component-name))))
+                             zipper)
+          hiccup (hickory-to-hiccup edited)]
+      (println hiccup)
+      (println (h2/page (h2/html (h2e/custom-fxns! my-schema) (nth hiccup 2))))
+      (fs/create-dirs "./output")
+      (c/spit (str "./output/" ns ".html") (h2/page (h2/html (h2e/custom-fxns! my-schema) (nth hiccup 2))))
+      (c/in-ns current-ns))))
