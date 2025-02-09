@@ -1,0 +1,8 @@
+;<!--
+(defn component [_ _]
+  [:div "Hello"])
+
+(def title "Your Page Title")
+#_(-->
+<div></div>
+<!--);-->
