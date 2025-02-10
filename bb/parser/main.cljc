@@ -43,55 +43,49 @@
 (defn- make-ns [path]
   (fs/file-name (first (drop-last (fs/split-ext path)))))
 
-(defn- process-clml-page [path clml-content output-dir]
-  (let [current-ns *ns*
+(defn- resolve-var [avar]
+  [(keyword (symbol avar)) @avar])
+
+(defn- resolve-clml-component [path]
+  "<div>TODO: Component</div>")
+
+(defn- process-clml-file [path]
+  (let [clml-content (slurp (fs/file path))
         [cljc-lines html-lines] (process-clml-content clml-content)
         cljc (s/join "\n" cljc-lines)
         html (s/join "\n" html-lines)
-        NS_UID (str "h-" (hash path))
-        NS_COMP_KEYWORD (keyword (str NS_UID "/component"))
-        NS (make-ns path)]
-    (in-ns (symbol NS))
-    (eval (read-string (str "(do " cljc ")")))
-    (def my-schema (h2e/add-schema-branch h2/hiccup-schema NS_COMP_KEYWORD))
-    (def ns-keys (keys (ns-interns *ns*)))
-    (def component-fns (into {} (filter (fn [[_ val]] (fn? val)) (map (fn [k]
-                                                                        (let [q-key (keyword (str NS "/" k))]
-                                                                          [q-key (eval k)])) ns-keys))))
-    (defmethod h2/emit NS_COMP_KEYWORD [append! node _]
-      (let [[_ [_ [attrs & children]]] node
-            component-name (get-in attrs [NS_COMP_KEYWORD])
-            component-fn (get component-fns component-name)
-            clean-attrs (dissoc attrs NS_COMP_KEYWORD)]
-        (append! (component-fn clean-attrs children))))
-    (let [html (substitute-vars html)
-          hickory (hc/as-hickory (hc/parse html))
-          zipper (hz/hickory-zip hickory)
-          edited (edit-nodes (fn [node] (and (= :element (:type node)) (hu/starts-with (name (:tag node)) "c:")))
-                             (fn [node] (let [tag (:tag node)
-                                              name (name tag)
-                                              new-tag  NS_COMP_KEYWORD
-                                              component-name (keyword (s/replace name "c:" (str NS "/")))]
-                                          (-> node
-                                              (assoc :tag new-tag)
-                                              (update-in [:attrs] assoc NS_COMP_KEYWORD component-name))))
-                             zipper)
-          hiccup (hickory-to-hiccup edited)
-          html (h2/page (h2/html (h2e/custom-fxns! my-schema) (nth hiccup 2)))]
-      (in-ns current-ns)
-      html)))
+        page-ns (make-ns path)
+        current-ns *ns*]
+    (in-ns (symbol page-ns))
+    (let [vars
+          (filter #(var? %) (eval (read-string (str "[ " cljc "]"))))
+          page-env
+          (into {} (map resolve-var vars))]
+      (let [html (substitute-vars html)
+            hickory (hc/as-hickory (hc/parse html))
+            zipper (hz/hickory-zip hickory)
+            edited (edit-nodes (fn [node] (and (= :element (:type node)) (hu/starts-with (name (:tag node)) "cl:")))
+                               (fn [node] (let [tag (:tag node)
+                                                attrs (:attrs node)
+                                                component-name (keyword page-ns (s/join (drop 3 (s/split (name tag) #""))))
+                                                component-val (component-name page-env)
+                                                fn-comp (fn? component-val)
+                                                component-html (if fn-comp
+                                                                 (component-val attrs)
+                                                                 (resolve-clml-component component-val))
+                                                node (hc/as-hickory (first (hc/parse-fragment component-html)))]
+                                            node))
+                               zipper)
+            hiccup (hickory-to-hiccup edited)
+            html (h2/page (h2/html (nth hiccup 2)))]
+        (in-ns current-ns)
+        html))))
 
-(defn- process-clml-component [path clml-content out-dir] "<div>TODO: Components</div>")
-
-(defn -main [in-dir out-dir]
-  (let [paths (fs/glob in-dir "**.clml")]
-    (doseq [path paths]
-      (let [clml-content (slurp (fs/file path))
-            is-page (s/includes? clml-content "<!DOCTYPE html>")
-            html (if is-page
-                   (process-clml-page path clml-content out-dir)
-                   (process-clml-component path clml-content out-dir))
-            file-name (str (fs/strip-ext (fs/file-name path)) ".html")
-            html-path (fs/path out-dir file-name)]
-        (fs/create-dirs out-dir)
-        (spit (fs/file html-path) html)))))
+    (defn -main [in-dir out-dir]
+      (let [paths (fs/glob (fs/path in-dir "pages") "**.clml")]
+        (doseq [path paths]
+          (let [html (process-clml-file path)
+                file-name (str (fs/strip-ext (fs/file-name path)) ".html")
+                html-path (fs/path out-dir file-name)]
+            (fs/create-dirs out-dir)
+            (spit (fs/file html-path) html)))))
