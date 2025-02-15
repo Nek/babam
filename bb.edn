@@ -2,6 +2,8 @@
  :paths ["bb"]
  :deps {org.clj-commons/hickory {:mvn/version "0.7.5"}
         io.github.escherize/huff {:mvn/version "0.2.12"}
+        org.clojure/tools.reader {:mvn/version "1.5.0"}
+
         }
 ;;  :pods {com.github.jackdbd/pod.jackdbd.jsoup {:version "0.4.0"}}
 }

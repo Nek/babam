@@ -9,7 +9,9 @@
             [hickory.convert :refer [hickory-to-hiccup]]
             [hickory.zip :as hz]
             [huff2.core :as h2]
-            [huff2.extension :as h2e]))
+            [huff2.extension :as h2e]
+            [clojure.tools.reader :as r]))
+
 
 (defn- edit-nodes [condition edit-fn z]
   (loop [loc z]
@@ -22,7 +24,7 @@
 
 (defn- substitute-vars [html]
   (s/replace html #"\{\{([^}]+)\}\}" (fn [[_ code]]
-                                       (let [result (eval (read-string code))]
+                                       (let [result (eval (r/read-string code))]
                                          (str result)))))
 
 
@@ -50,7 +52,10 @@
   "<div>TODO: Component</div>")
 
 (defn- process-clml-file [path]
+  (println (load-file (fs/file path)))
   (let [clml-content (slurp (fs/file path))
+        sss (r/read clml-content)
+        _ (println sss)
         [cljc-lines html-lines] (process-clml-content clml-content)
         cljc (s/join "\n" cljc-lines)
         html (s/join "\n" html-lines)
@@ -58,7 +63,7 @@
         current-ns *ns*]
     (in-ns (symbol page-ns))
     (let [vars
-          (filter #(var? %) (eval (read-string (str "[ " cljc "]"))))
+          (filter #(var? %) (eval (r/read-string (str "[ " cljc "]"))))
           page-env
           (into {} (map resolve-var vars))]
       (let [html (substitute-vars html)
