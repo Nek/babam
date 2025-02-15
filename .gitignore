@@ -5,3 +5,6 @@ mise.toml
 .aider*
 .DS_Store
 tmp
+out
+dist
+www
