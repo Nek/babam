@@ -4,7 +4,7 @@ A minimal clone of [Astro](https://astro.build) built with Clojure and Babashka.
 
 ## Roadmap
 
-- cljc+html based components
+- clj+html based components
 - resolve defs in a component to {{name}} vars in html
 - 
 

@@ -1,7 +1,0 @@
-;<!--
-(ns components.comp)
-(def ^:dynamic a 1)
-(def ^:dynamic b 2)
-#_(-->
-<div>{{a}} {{b}}</div>
-<!--);-->

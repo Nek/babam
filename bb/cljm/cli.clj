@@ -1,5 +1,5 @@
 #!/usr/bin/env bb
-(ns parser.main
+(ns cljm.cli
   (:require [clojure.string :as s]
             [clojure.core :as c]
             [clojure.zip :as zip]
@@ -94,3 +94,4 @@
                 html-path (fs/path out-dir file-name)]
             (fs/create-dirs out-dir)
             (spit (fs/file html-path) html)))))
+
