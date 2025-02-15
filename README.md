@@ -1,4 +1,4 @@
-# BabaAstro
+# Babaml – Babashka & Markup
 
 A minimal clone of [Astro](https://astro.build) built with Clojure and Babashka. Build fast, content-focused websites with the power of Clojure.
 
@@ -26,10 +26,11 @@ bb dev
 ```
 my-site/
 ├── src/
+│   └── components/
+│       └── counter.clj
 │   └── pages/
 │       └── index.clj
-├── public/
-│   └── assets/
+|       └── index.html
 ├── bb.edn
 └── README.md
 ```
