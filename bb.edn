@@ -1,3 +1,19 @@
 {:paths ["bb" "src"]
  :deps {org.clj-commons/hickory {:mvn/version "0.7.5"}
-        io.github.escherize/huff {:mvn/version "0.2.12"}}}
+        io.github.escherize/huff {:mvn/version "0.2.12"}}
+ :pods {org.babashka/fswatcher {:version "0.0.5"}}
+ :tasks {test {:extra-paths ["test"]
+                  :extra-deps {io.github.cognitect-labs/test-runner
+                               {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+                  :task (exec 'cognitect.test-runner.api/test)
+                  :exec-args {:dirs ["test"]}
+                  :org.babashka/cli {:coerce {:nses [:symbol]
+                                              :vars [:symbol]}}}
+         watch:test {:requires ([pod.babashka.fswatcher :as fw])
+                :task (do (fw/watch "test"
+                                    (fn [event]
+                                      (run 'test)) {:recursive true})
+                          (fw/watch "src"
+                                    (fn [event]
+                                      (run 'test)) {:recursive true})
+                          (deref (promise)))}}}

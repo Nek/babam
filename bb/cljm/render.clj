@@ -5,6 +5,7 @@
    [clojure.tools.reader :as reader]
    [hickory.core :as hc]
    [hickory.zip :as hz]
+   [hickory.convert :refer [hickory-to-hiccup]]
    [clojure.zip :as zip]
    [hiccup2.core :as h2]))
 
@@ -22,14 +23,14 @@
    Throws an exception if the namespace file does not exist."
   [ns]
   (let [path (-> ns
-                 ns-publics 
-                 vec first second 
-                 meta :file)] 
+                 ns-publics
+                 vec first second
+                 meta :file)]
     (if (nil? path)
       (throw (Exception. "No vars found in namespace. Cannot deduce namespace file"))
       path)))
 
-(defn find-template 
+(defn find-template
   "Returns HTML template for the given namespace.
    Throws an exception if the namespace file does not exist."
   [ns]
@@ -63,25 +64,25 @@
   "Returns the component function for the given tag.
    Returns nil if the tag is not a component."
   [tag]
-  (let [tag-name (name tag) 
-        tag-parts (string/split tag-name #":")]
+  (let [tag-name (name tag)
+        tag-parts (string/split tag-name #":")] 
     (if (= (count tag-parts) 2)
-      (let [tag-ns (first tag-parts)
-            tag-name (second tag-parts)
-            comp-fn (requiring-resolve (symbol tag-ns tag-name))]
-        comp-fn)
+      (let [[tag-ns tag-name] tag-parts
+            fn-name (symbol tag-ns tag-name)]
+        (try 
+          (let [comp-fn (var-get (requiring-resolve fn-name))
+                comp-fn2 (var-get (requiring-resolve comp-fn))]
+            comp-fn2)
+          (catch Exception e
+            nil)))
       nil)))
 
 (defn- update-node
   "Updates the node with the component function.
    Returns the updated node."
-  [node & _] (let [comp-fn (get-comp-fn (first node))
-                   attrs (second node)]
-               (if (map? attrs)
-                 (let [body (or (nnext node) '())]
-                   (apply comp-fn (cons attrs body)))
-                 (let [body (or (nnext node) '())]
-                   (apply comp-fn (cons {} body))))))
+  [node] (let [comp-fn (get-comp-fn (first node))]
+           (println "comp-fn" comp-fn)
+               (apply comp-fn node)))
 
 (defn- should-edit-node?
   "Returns true if the node should be edited.
@@ -94,25 +95,36 @@
     false))
 
 (defn resolve-comps
-  "Takes HTML string, resolves and renders the components.
-   Returns hiccup structure."
-  [html]
-  (let [hiccup (hc/as-hiccup (hc/parse html))
-        zipper (hz/hiccup-zip hiccup)
+  "Takes hiccup structure, resolves and renders the components.
+   Returns updated hiccup structure."
+  [hiccup]
+  (let [zipper (hz/hiccup-zip hiccup)
         edited (edit-nodes should-edit-node?
                            update-node
                            zipper)]
-     edited))
+    edited))
 
 (defn render-html
   "Takes hiccup structure and renders it to HTML string."
   [hiccup & {:keys [escape-strings?] :or {escape-strings? false}}]
   (h2/html {:escape-strings? escape-strings?} hiccup))
 
-(defn page []
-  (-> *ns*
+(defn page [ns]
+  (-> ns
       find-template
       substitute-vars
+      hc/parse
+      hc/as-hiccup
       resolve-comps
       render-html
       str))
+
+(defn component [ns render-fn]
+  (let [html (-> ns
+                 find-template
+                 hc/parse-fragment
+                 first
+                 hc/as-hiccup
+                 render-fn
+                 )]
+    (apply render-fn html)))

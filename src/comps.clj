@@ -1,4 +1,4 @@
-(ns comps
-  (:require [components.counter :refer [main] :rename {main counter-main}]))
+(ns comps)
 
-(def counter counter-main)
+(def counter 'components.counter/main)
+(def card 'components.card/main)

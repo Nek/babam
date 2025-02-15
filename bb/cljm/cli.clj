@@ -52,10 +52,8 @@
   "<div>TODO: Component</div>")
 
 (defn- process-clml-file [path]
-  (println (load-file (fs/file path)))
   (let [clml-content (slurp (fs/file path))
         sss (r/read clml-content)
-        _ (println sss)
         [cljc-lines html-lines] (process-clml-content clml-content)
         cljc (s/join "\n" cljc-lines)
         html (s/join "\n" html-lines)
