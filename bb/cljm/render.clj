@@ -81,7 +81,6 @@
   "Updates the node with the component function.
    Returns the updated node."
   [node] (let [comp-fn (get-comp-fn (first node))]
-           (println "comp-fn" comp-fn)
                (apply comp-fn node)))
 
 (defn- should-edit-node?
